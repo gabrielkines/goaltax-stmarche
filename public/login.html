@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GoalTax — Simulador DRE</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:linear-gradient(135deg,#0a1628 0%,#121F36 50%,#1D2F4F 100%);
+       font-family:'Segoe UI',system-ui,sans-serif}
+  .card{background:#fff;border-radius:16px;padding:48px 40px;width:100%;max-width:420px;
+        box-shadow:0 24px 64px rgba(0,0,0,.4)}
+  .logo-area{text-align:center;margin-bottom:36px}
+  .brand{font-size:26px;font-weight:700;color:#121F36;letter-spacing:-.5px}
+  .sub{font-size:13px;color:#6b7280;margin-top:6px}
+  label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}
+  input[type=email],input[type=password]{
+    width:100%;padding:11px 14px;border:1.5px solid #d1d5db;border-radius:8px;
+    font-size:14px;color:#111;outline:none;transition:border .2s}
+  input:focus{border-color:#0C1F25;box-shadow:0 0 0 3px rgba(12,31,37,.12)}
+  .field{margin-bottom:18px}
+  .btn{width:100%;padding:13px;background:#0C1F25;color:#fff;border:none;
+       border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
+       transition:background .2s;margin-top:8px}
+  .btn:hover{background:#1a3545}
+  .btn:disabled{background:#6b8a95;cursor:not-allowed}
+  .erro{background:#fef2f2;border:1px solid #fca5a5;color:#b91c1c;
+        border-radius:8px;padding:10px 14px;font-size:13px;margin-bottom:18px;display:none}
+  .erro.vis{display:block}
+  .divider{border:none;border-top:1px solid #e5e7eb;margin:20px 0}
+  .hint{font-size:12px;color:#9ca3af;margin-top:6px}
+  .footer{text-align:center;margin-top:24px;font-size:12px;color:#9ca3af}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo-area">
+    <div class="brand">Goal<span style="color:#00AFFA">Tax</span></div>
+    <div class="sub">Simulador DRE — Reforma Tributária</div>
+  </div>
+
+  <div class="erro" id="erroMsg"></div>
+
+  <div class="field">
+    <label for="email">Seu e-mail</label>
+    <input type="email" id="email" placeholder="seu@email.com" autocomplete="email" />
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="field">
+    <label for="password">Senha de acesso</label>
+    <input type="password" id="password" placeholder="Digite sua senha" autocomplete="current-password" />
+    <div class="hint">Ferramenta desenvolvida por GoalTax.</div>
+  </div>
+
+  <button class="btn" id="btnLogin" onclick="doLogin()">Acessar o Simulador</button>
+
+  <div class="footer">GoalTax &copy; 2026 · Segurança Tributária</div>
+</div>
+
+<script>
+  (async () => {
+    const token = localStorage.getItem('gt_token');
+    if (token) {
+      try {
+        const r = await fetch('/api/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        if (r.ok) { location.href = '/'; return; }
+      } catch (_) {}
+      localStorage.removeItem('gt_token');
+      localStorage.removeItem('gt_email');
+    }
+  })();
+
+  async function doLogin() {
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const btn      = document.getElementById('btnLogin');
+    const erro     = document.getElementById('erroMsg');
+
+    erro.classList.remove('vis');
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      erro.textContent = 'Informe um e-mail válido para continuar.';
+      return erro.classList.add('vis');
+    }
+    if (!password) {
+      erro.textContent = 'Informe a senha de acesso.';
+      return erro.classList.add('vis');
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+
+    try {
+      const res  = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const json = await res.json();
+
+      if (res.ok && json.token) {
+        localStorage.setItem('gt_token', json.token);
+        localStorage.setItem('gt_email', json.email);
+        location.href = '/';
+      } else {
+        erro.textContent = json.erro || 'Erro ao entrar. Tente novamente.';
+        erro.classList.add('vis');
+        btn.disabled = false;
+        btn.textContent = 'Acessar o Simulador';
+      }
+    } catch (e) {
+      erro.textContent = 'Sem conexão. Verifique sua internet.';
+      erro.classList.add('vis');
+      btn.disabled = false;
+      btn.textContent = 'Acessar o Simulador';
+    }
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "name": "goaltax-stmarche",
+  "version": "1.0.0",
+  "description": "GoalTax — Simulador DRE Reforma Tributária",
+  "engines": {
+    "node": ">=18"
+  }
+}
