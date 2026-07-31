@@ -38,7 +38,7 @@ header{background:var(--navy);padding:0 24px;height:54px;display:flex;align-item
          text-transform:uppercase;padding:0 4px;margin-bottom:2px}
 .field{display:flex;flex-direction:column;gap:4px}
 .field label{font-size:11px;font-weight:600;color:rgba(255,255,255,.65)}
-select,input[type=number]{
+select,input[type=number],input[type=text]{
   background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
   color:#fff;border-radius:7px;padding:8px 10px;font-size:12px;outline:none;
   transition:border .2s;width:100%}
@@ -183,7 +183,7 @@ td.col-snr{background:#ecfdf5}
       </div>
       <div class="field hidden" id="rbt12Field" style="margin-top:8px">
         <label>Receita Bruta 12 meses (R$)</label>
-        <input type="number" id="rbt12" value="500000" min="0" step="10000" oninput="render()">
+        <input type="text" id="rbt12" value="500.000" oninput="fmtInput(this)">
       </div>
     </div>
 
@@ -209,7 +209,7 @@ td.col-snr{background:#ecfdf5}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="field">
           <label>Receita Bruta (R$)</label>
-          <input type="number" id="rb" value="250000" min="0" step="1000" oninput="render()">
+          <input type="text" id="rb" value="250.000" oninput="fmtInput(this)">
         </div>
         <div class="field">
           <label>Alíq. ISS / ICMS (%)</label>
@@ -225,15 +225,15 @@ td.col-snr{background:#ecfdf5}
       <div style="display:flex;flex-direction:column;gap:8px">
         <div class="field">
           <label>Custos PJ contribuintes (R$)</label>
-          <input type="number" id="custos" value="104500" min="0" step="1000" oninput="render()">
+          <input type="text" id="custos" value="104.500" oninput="fmtInput(this)">
         </div>
         <div class="field">
           <label>Despesas PJ (R$)</label>
-          <input type="number" id="despesasPJ" value="30000" min="0" step="1000" oninput="render()">
+          <input type="text" id="despesasPJ" value="30.000" oninput="fmtInput(this)">
         </div>
         <div class="field">
           <label>Despesas PF / Não contribuintes (R$)</label>
-          <input type="number" id="despesasPF" value="1000" min="0" step="1000" oninput="render()">
+          <input type="text" id="despesasPF" value="1.000" oninput="fmtInput(this)">
         </div>
       </div>
     </div>
@@ -244,7 +244,7 @@ td.col-snr{background:#ecfdf5}
       <div class="s-title">Folha de Pagamento</div>
       <div class="field">
         <label>Total da folha (R$)</label>
-        <input type="number" id="folha" value="55000" min="0" step="1000" oninput="render()">
+        <input type="text" id="folha" value="55.000" oninput="fmtInput(this)">
       </div>
       <div class="info-chip" style="margin-top:6px">
         <span class="lbl">INSS patronal (26%)</span>
@@ -438,6 +438,24 @@ function calcSimples(rbt12, anexo) {
   return { aliqEf, pisCofinsComp, faixa: f };
 }
 
+// ── INPUT FORMATTING (R$) ────────────────────────────────────────
+function fmtInput(el) {
+  const raw = el.value.replace(/\D/g, '');
+  if (!raw) { el.value = ''; el.dataset.num = '0'; render(); return; }
+  const num = parseInt(raw, 10);
+  el.dataset.num = String(num);
+  // Keep cursor at end by setting value after format
+  el.value = num.toLocaleString('pt-BR');
+  render();
+}
+
+function getNum(id) {
+  const el = document.getElementById(id);
+  if (el.dataset.num !== undefined && el.dataset.num !== '') return Number(el.dataset.num);
+  // Fallback: parse formatted value (remove dots, replace comma)
+  return parseInt(el.value.replace(/\./g, '').replace(',', '') || '0', 10);
+}
+
 // ── FORMATTING ────────────────────────────────────────────────────
 function fBRL(n) {
   if (n == null || isNaN(n)) return '—';
@@ -626,15 +644,15 @@ function _doRender() {
   const cat    = CBS_CATS[catIdx];
   const inputs = {
     regime2026:  document.getElementById('regime2026').value,
-    rb:          Number(document.getElementById('rb').value) || 0,
+    rb:          getNum('rb'),
     issRate:     Number(document.getElementById('issRate').value) || 0,
-    custos:      Number(document.getElementById('custos').value) || 0,
-    despesasPJ:  Number(document.getElementById('despesasPJ').value) || 0,
-    despesasPF:  Number(document.getElementById('despesasPF').value) || 0,
-    folha:       Number(document.getElementById('folha').value) || 0,
+    custos:      getNum('custos'),
+    despesasPJ:  getNum('despesasPJ'),
+    despesasPF:  getNum('despesasPF'),
+    folha:       getNum('folha'),
     cbsEf:       cat.ef,
     anexoSimples: document.getElementById('anexoSimples').value,
-    rbt12:       Number(document.getElementById('rbt12').value) || 0,
+    rbt12:       getNum('rbt12'),
   };
 
   // Update quick chips
@@ -740,6 +758,15 @@ function _doRender() {
 }
 
 // ── INIT ─────────────────────────────────────────────────────────
+// Inicializa data-num dos campos pré-preenchidos
+['rb','custos','despesasPJ','despesasPF','folha','rbt12'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) {
+    const num = parseInt(el.value.replace(/\./g, '') || '0', 10);
+    el.dataset.num = String(num);
+  }
+});
+
 initCats();
 onRegimeChange();
 </script>
